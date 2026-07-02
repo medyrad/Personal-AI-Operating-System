@@ -1,0 +1,70 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- uv ---
+# uv.lock is committed intentionally; only ignore local cache
+.uv-cache/
+
+# --- Node / pnpm ---
+node_modules/
+.pnpm-store/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.turbo/
+
+# --- Django ---
+*.sqlite3
+staticfiles/
+media/
+local_settings.py
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Docker ---
+docker-compose.override.yml
+
+# --- Logs ---
+*.log
+logs/
+
+# --- IDE ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Testing / Playwright ---
+test-results/
+playwright-report/
+blob-report/
+
+# --- Misc ---
+*.tmp
+*.bak
+.cache/
