@@ -26,6 +26,7 @@ dev = [
 line-length = 100
 target-version = "py312"
 src = ["apps/backend/chronos_backend"]
+extend-exclude = ["**/migrations/*.py"]
 
 [tool.ruff.lint]
 select = [
@@ -43,18 +44,19 @@ ignore = ["DJ001"]  # allow nullable CharField where Django app patterns call fo
 [tool.ruff.lint.isort]
 known-first-party = ["chronos_backend"]
 
-# --- MyPy: shared config. The Django plugin needs a real `chronos_backend.settings`
-# module to import, which doesn't exist until the Django project is bootstrapped
-# (next PR / vertical slice). Enable `plugins = ["mypy_django_plugin.main"]` and the
-# [tool.django-stubs] table below at that point — django-stubs is already installed
-# as a dev dependency so no further install step will be needed.
+# --- MyPy: Django plugin now active since chronos_backend.settings exists. ---
 [tool.mypy]
 python_version = "3.12"
 strict = true
+plugins = ["mypy_django_plugin.main"]
 exclude = ["migrations/"]
 
-# --- Pytest. DJANGO_SETTINGS_MODULE is added once chronos_backend.settings exists. ---
+[tool.django-stubs]
+django_settings_module = "chronos_backend.settings"
+
+# --- Pytest ---
 [tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "chronos_backend.settings"
 python_files = ["test_*.py", "*_test.py"]
 testpaths = ["apps/backend"]
 addopts = "--cov=chronos_backend --cov-report=term-missing"

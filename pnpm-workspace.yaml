@@ -1,0 +1,7 @@
+packages:
+  - "apps/frontend"
+
+# esbuild (a Vite dependency) needs its postinstall script to fetch the correct
+# platform binary — explicitly allow-listed rather than allowing all build scripts.
+onlyBuiltDependencies:
+  - esbuild

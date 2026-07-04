@@ -68,3 +68,6 @@ blob-report/
 *.tmp
 *.bak
 .cache/
+
+# --- Frontend build output already covered above; extra safety ---
+apps/frontend/dist/

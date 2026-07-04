@@ -1,0 +1,13 @@
+{
+  "name": "chronos-workspace",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:frontend": "pnpm --filter @chronos/frontend dev",
+    "build:frontend": "pnpm --filter @chronos/frontend build",
+    "lint:frontend": "pnpm --filter @chronos/frontend lint"
+  }
+}

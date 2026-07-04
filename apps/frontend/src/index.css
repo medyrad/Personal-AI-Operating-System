@@ -1,0 +1,54 @@
+/* Chronos — design tokens
+   Concept: the day as a river of light. A thin progress spine marks where "now" sits
+   between dawn and dusk; tasks are beads strung along a vertical thread beneath it.
+   Palette avoids the default cream/serif/terracotta and neon-on-black looks on purpose —
+   dusk-indigo ground with amber (daylight) and teal (completed) accents instead. */
+
+:root {
+  --bg: #14161f;
+  --panel: #1b1e2a;
+  --line: #2a2e3d;
+  --ink: #edeef3;
+  --ink-muted: #8d92a8;
+  --ink-faint: #565b70;
+
+  --amber: #e8a33d;
+  --amber-soft: rgba(232, 163, 61, 0.16);
+  --teal: #3fc7b3;
+  --violet: #7c6ff0;
+
+  --font-display: "Newsreader", ui-serif, Georgia, serif;
+  --font-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
