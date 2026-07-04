@@ -1,0 +1,60 @@
+[project]
+name = "chronos-workspace"
+version = "0.0.0"
+description = "Chronos monorepo root — not published, groups the uv workspace members."
+requires-python = ">=3.12"
+dependencies = ["chronos-backend"]
+
+[tool.uv.sources]
+chronos-backend = { workspace = true }
+
+[tool.uv.workspace]
+members = ["apps/backend"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pytest>=8.3.0",
+    "pytest-django>=4.9.0",
+    "pytest-cov>=6.0.0",
+    "django-stubs>=5.1.0",
+]
+
+# --- Ruff: shared across every workspace member ---
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["apps/backend/chronos_backend"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "DJ",  # flake8-django
+    "SIM", # flake8-simplify
+]
+ignore = ["DJ001"]  # allow nullable CharField where Django app patterns call for it
+
+[tool.ruff.lint.isort]
+known-first-party = ["chronos_backend"]
+
+# --- MyPy: shared config. The Django plugin needs a real `chronos_backend.settings`
+# module to import, which doesn't exist until the Django project is bootstrapped
+# (next PR / vertical slice). Enable `plugins = ["mypy_django_plugin.main"]` and the
+# [tool.django-stubs] table below at that point — django-stubs is already installed
+# as a dev dependency so no further install step will be needed.
+[tool.mypy]
+python_version = "3.12"
+strict = true
+exclude = ["migrations/"]
+
+# --- Pytest. DJANGO_SETTINGS_MODULE is added once chronos_backend.settings exists. ---
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["apps/backend"]
+addopts = "--cov=chronos_backend --cov-report=term-missing"
