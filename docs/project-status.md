@@ -13,6 +13,8 @@ Last reviewed locally: 2026-07-05.
   the planner endpoint.
 - People API exists for listing, creating, and updating relationship context.
 - Knowledge graph summaries resolve event/person labels for UI consumption.
+- Routine occurrences for the current day are hydrated on page load, so the UI reflects
+  pending/fulfilled/skipped state without manual preparation.
 - The frontend currently supports the Today task flow, Tonight journal capture, Tomorrow
   planner trigger, routines, people, and knowledge summaries.
 - The frontend supports English/Persian UI copy, LTR/RTL layout direction, and dark/light
@@ -33,7 +35,8 @@ Last reviewed locally: 2026-07-05.
 - Planner is tested with `TestModel`, but not yet validated against a real provider because
   no fresh safe API key has been configured.
 - Routine recurrence remains intentionally minimal: daily and weekly-by-day only.
-- Knowledge graph UI is still a compact relationship feed, not an exploratory graph view.
+- Knowledge graph UI is still a compact relationship feed, not a spatial exploratory
+  graph view.
 - Health, expense, learning, insight, reflection, and relationship-agent slices are not
   implemented yet.
 - Auth is still a fixed development user.
