@@ -48,6 +48,13 @@ class Event(models.Model):
         on_delete=models.SET_NULL,
         related_name="extracted_events",
     )
+    routine_occurrence = models.ForeignKey(
+        "routines.RoutineOccurrence",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="fulfilling_events",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

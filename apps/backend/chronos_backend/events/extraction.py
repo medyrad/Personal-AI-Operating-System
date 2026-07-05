@@ -39,6 +39,9 @@ _MOOD_KEYWORDS: dict[str, tuple[str, int]] = {
 
 _WORKOUT_KEYWORDS = ("workout", "gym", "exercise", "ran", "run", "running")
 
+# Matches "with Ali", "met with Sara Jones" — capitalized name after "with"/"met".
+_PERSON_PATTERN = re.compile(r"\b(?:with|met)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b")
+
 
 @dataclass(frozen=True)
 class ExtractedEvent:
@@ -48,6 +51,7 @@ class ExtractedEvent:
     title: str
     mood_valence: int | None = None
     mood_label: str | None = None
+    person_name: str | None = None
 
 
 class Extractor(Protocol):
@@ -74,6 +78,16 @@ class HeuristicExtractor:
 
         if any(keyword in text_lower for keyword in _WORKOUT_KEYWORDS):
             results.append(ExtractedEvent(type=EventType.WORKOUT, title="Workout"))
+
+        for match in _PERSON_PATTERN.finditer(raw_text):
+            name = match.group(1)
+            results.append(
+                ExtractedEvent(
+                    type=EventType.CONVERSATION,
+                    title=f"Talked with {name}",
+                    person_name=name,
+                )
+            )
 
         return results
 

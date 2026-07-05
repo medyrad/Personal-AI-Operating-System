@@ -12,10 +12,20 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone as dj_timezone
 from ninja import NinjaAPI, Schema
 
-from chronos_backend.accounts.models import User
+from chronos_backend.accounts.devuser import get_dev_user
+from chronos_backend.knowledge.services import create_edge
+from chronos_backend.people.models import Person
 
 from .extraction import get_extractor
-from .models import Event, EventType, JournalEntry, MoodDetail, TaskDetail, TaskStatus
+from .models import (
+    ConversationDetail,
+    Event,
+    EventType,
+    JournalEntry,
+    MoodDetail,
+    TaskDetail,
+    TaskStatus,
+)
 
 api = NinjaAPI(title="Chronos API", version="0.1.0")
 
@@ -37,11 +47,6 @@ class TaskOutSchema(Schema):
     importance: int
 
 
-def _dev_user() -> User:
-    user, _ = User.objects.get_or_create(username="dev", defaults={"timezone": "Europe/Berlin"})
-    return user
-
-
 def _serialize(event: Event, detail: TaskDetail) -> TaskOutSchema:
     return TaskOutSchema(
         id=str(event.id),
@@ -56,7 +61,7 @@ def _serialize(event: Event, detail: TaskDetail) -> TaskOutSchema:
 
 @api.post("/events/tasks", response=TaskOutSchema)
 def create_task(request: HttpRequest, payload: TaskCreateSchema) -> TaskOutSchema:
-    user = _dev_user()
+    user = get_dev_user()
     event = Event.objects.create(
         user=user,
         type=EventType.TASK,
@@ -74,7 +79,7 @@ def create_task(request: HttpRequest, payload: TaskCreateSchema) -> TaskOutSchem
 
 @api.get("/events/today", response=list[TaskOutSchema])
 def list_today_tasks(request: HttpRequest) -> list[TaskOutSchema]:
-    user = _dev_user()
+    user = get_dev_user()
     today = dj_timezone.localdate()
     events = (
         Event.objects.filter(user=user, type=EventType.TASK, occurred_at__date=today)
@@ -113,7 +118,7 @@ class JournalOutSchema(Schema):
 
 @api.post("/journal", response=JournalOutSchema)
 def create_journal_entry(request: HttpRequest, payload: JournalCreateSchema) -> JournalOutSchema:
-    user = _dev_user()
+    user = get_dev_user()
     now = dj_timezone.now()
 
     entry = JournalEntry.objects.create(
@@ -140,6 +145,10 @@ def create_journal_entry(request: HttpRequest, payload: JournalCreateSchema) -> 
                 label=item.mood_label or "",
                 intensity=abs(item.mood_valence or 0) or 1,
             )
+        elif item.type == EventType.CONVERSATION and item.person_name:
+            person = Person.get_or_create_by_name(user, item.person_name)
+            ConversationDetail.objects.create(event=event)
+            create_edge(user, event, "involves", person)
         created_events.append(event)
 
     entry.processed_at = dj_timezone.now()

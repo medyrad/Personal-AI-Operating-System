@@ -28,7 +28,10 @@ INSTALLED_APPS = [
     "corsheaders",
     "ninja",
     "chronos_backend.accounts",
+    "chronos_backend.people",
     "chronos_backend.events",
+    "chronos_backend.routines",
+    "chronos_backend.knowledge",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
