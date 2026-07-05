@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import {
   api,
@@ -10,19 +10,29 @@ import {
   type RoutineOccurrence,
   type Task,
 } from "./api";
+import { copy, directionFor, LANGUAGES, localeFor, THEMES, type Language, type Theme } from "./i18n";
 
-const DAY_NAME = new Intl.DateTimeFormat(undefined, { weekday: "long" });
-const DAY_DATE = new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric" });
-const CLOCK = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+const LANGUAGE_KEY = "chronos.language";
+const THEME_KEY = "chronos.theme";
+
+function readStoredLanguage(): Language {
+  const stored = window.localStorage.getItem(LANGUAGE_KEY);
+  return stored === "fa" || stored === "en" ? stored : "en";
+}
+
+function readStoredTheme(): Theme {
+  const stored = window.localStorage.getItem(THEME_KEY);
+  return stored === "light" || stored === "dark" ? stored : "dark";
+}
 
 function dayProgressPercent(now: Date): number {
   const minutesIntoDay = now.getHours() * 60 + now.getMinutes();
   return (minutesIntoDay / (24 * 60)) * 100;
 }
 
-function ImportanceDots({ level }: { level: number }) {
+function ImportanceDots({ label, level }: { label: string; level: number }) {
   return (
-    <span className="task__importance" aria-label={`Importance ${level} of 5`}>
+    <span className="task__importance" aria-label={label}>
       {[1, 2, 3, 4, 5].map((n) => (
         <span key={n} className={n <= level ? "lit" : ""} />
       ))}
@@ -31,6 +41,8 @@ function ImportanceDots({ level }: { level: number }) {
 }
 
 export default function App() {
+  const [language, setLanguage] = useState<Language>(() => readStoredLanguage());
+  const [theme, setTheme] = useState<Theme>(() => readStoredTheme());
   const [tasks, setTasks] = useState<Task[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -54,17 +66,32 @@ export default function App() {
   const [relationshipLabel, setRelationshipLabel] = useState("");
   const [edges, setEdges] = useState<KnowledgeEdgeSummary[]>([]);
 
+  const t = copy[language];
+  const locale = localeFor(language);
+  const direction = directionFor(language);
+  const dayName = useMemo(
+    () => new Intl.DateTimeFormat(locale, { weekday: "long" }).format(now),
+    [locale, now],
+  );
+  const dayDate = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: "long", day: "numeric" }).format(now),
+    [locale, now],
+  );
+  const clock = useMemo(
+    () => new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(now),
+    [locale, now],
+  );
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+
   useEffect(() => {
-    api
-      .listToday()
-      .then(setTasks)
-      .catch(() => setError("Could not reach Chronos — is the backend running?"));
-    void refreshLifeContext();
-  }, []);
+    document.documentElement.lang = locale;
+    document.documentElement.dir = direction;
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(LANGUAGE_KEY, language);
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [direction, language, locale, theme]);
 
-  const progress = useMemo(() => dayProgressPercent(now), [now]);
-
-  async function refreshLifeContext() {
+  const refreshLifeContext = useCallback(async () => {
     try {
       const [routineList, peopleList, edgeList] = await Promise.all([
         api.listRoutines(),
@@ -75,9 +102,21 @@ export default function App() {
       setPeople(peopleList);
       setEdges(edgeList);
     } catch {
-      setError("Could not load routines and relationships.");
+      setError(t.errors.lifeContext);
     }
-  }
+  }, [t.errors.lifeContext]);
+
+  useEffect(() => {
+    api
+      .listToday()
+      .then(setTasks)
+      .catch(() => setError(t.errors.backend));
+    queueMicrotask(() => {
+      void refreshLifeContext();
+    });
+  }, [refreshLifeContext, t.errors.backend]);
+
+  const progress = useMemo(() => dayProgressPercent(now), [now]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -88,7 +127,7 @@ export default function App() {
       const created = await api.createTask({ title });
       setTasks((prev) => [...prev, created]);
     } catch {
-      setError("Couldn't save that task. It's still in the box below — try again.");
+      setError(t.errors.taskSave);
       setDraft(title);
     }
   }
@@ -99,7 +138,7 @@ export default function App() {
       const updated = await api.completeTask(task.id);
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch {
-      setError("Couldn't update that task — try again in a moment.");
+      setError(t.errors.taskUpdate);
     }
   }
 
@@ -116,7 +155,7 @@ export default function App() {
       void refreshLifeContext();
     } catch {
       setJournalStatus("idle");
-      setError("Couldn't save that entry — try again.");
+      setError(t.errors.journalSave);
     }
   }
 
@@ -129,7 +168,7 @@ export default function App() {
       setPlanStatus("idle");
     } catch (err) {
       setPlanStatus("unavailable");
-      setPlanMessage(err instanceof Error ? err.message : "Planning is unavailable right now.");
+      setPlanMessage(err instanceof Error ? err.message : t.planner.unavailable);
     }
   }
 
@@ -147,7 +186,7 @@ export default function App() {
       });
       setRoutines((prev) => [...prev, created]);
     } catch {
-      setError("Couldn't save that routine.");
+      setError(t.errors.routineSave);
       setRoutineName(name);
     }
   }
@@ -157,7 +196,7 @@ export default function App() {
       const occurrence = await api.ensureRoutineToday(routine.id);
       setOccurrences((prev) => ({ ...prev, [routine.id]: occurrence }));
     } catch {
-      setError("Couldn't prepare that routine for today.");
+      setError(t.errors.routinePrepare);
     }
   }
 
@@ -175,20 +214,20 @@ export default function App() {
       };
       setJournalEvents((prev) => [taskLikeEvent, ...prev]);
     } catch {
-      setError("Couldn't mark that routine fulfilled.");
+      setError(t.errors.routineFulfill);
     }
   }
 
   async function skipRoutine(routine: Routine) {
     const occurrence = occurrences[routine.id] ?? (await api.ensureRoutineToday(routine.id));
     if (!occurrence) return;
-    const reason = window.prompt("Reason");
+    const reason = window.prompt(t.routines.reasonPrompt);
     if (reason == null) return;
     try {
       const updated = await api.skipOccurrence(occurrence.id, reason.trim());
       setOccurrences((prev) => ({ ...prev, [routine.id]: updated }));
     } catch {
-      setError("Couldn't skip that routine.");
+      setError(t.errors.routineSkip);
     }
   }
 
@@ -205,17 +244,52 @@ export default function App() {
       });
       setPeople((prev) => [...prev.filter((person) => person.id !== created.id), created]);
     } catch {
-      setError("Couldn't save that person.");
+      setError(t.errors.personSave);
       setPersonName(display_name);
     }
   }
 
+  const routineStatusLabel = (occurrence: RoutineOccurrence | null | undefined) =>
+    occurrence ? t.routines.status[occurrence.status] : t.routines.notPrepared;
+
+  const predicateLabel = (predicate: string) =>
+    predicate === "involves" ? t.relationships.predicate.involves : predicate;
+
   return (
     <div className="page">
       <div className="sheet">
-        <p className="eyebrow">Today</p>
+        <div className="app-controls" aria-label={`${t.controls.language} / ${t.controls.theme}`}>
+          <div className="segmented" aria-label={t.controls.language}>
+            {LANGUAGES.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={option === language ? "segmented__button active" : "segmented__button"}
+                onClick={() => setLanguage(option)}
+                aria-pressed={option === language}
+              >
+                {option === "en" ? t.controls.english : t.controls.persian}
+              </button>
+            ))}
+          </div>
+          <div className="segmented" aria-label={t.controls.theme}>
+            {THEMES.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={option === theme ? "segmented__button active" : "segmented__button"}
+                onClick={() => setTheme(option)}
+                aria-pressed={option === theme}
+              >
+                {option === "dark" ? t.controls.dark : t.controls.light}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="eyebrow">{t.time.today}</p>
         <h1 className="date-heading">
-          {DAY_NAME.format(now)}, {DAY_DATE.format(now)}
+          {dayName}, {dayDate}
         </h1>
 
         <div className="day-progress">
@@ -224,16 +298,18 @@ export default function App() {
             <div className="day-progress__marker" style={{ left: `${progress}%` }} />
           </div>
           <div className="day-progress__label">
-            <span>Dawn</span>
-            <strong>Now · {CLOCK.format(now)}</strong>
-            <span>Dusk</span>
+            <span>{t.time.dawn}</span>
+            <strong>
+              {t.time.now} · {clock}
+            </strong>
+            <span>{t.time.dusk}</span>
           </div>
         </div>
 
         {error && <div className="error-banner">{error}</div>}
 
         {tasks.length === 0 ? (
-          <p className="empty-state">Nothing logged yet — begin your day below.</p>
+          <p className="empty-state">{t.task.empty}</p>
         ) : (
           <ul className="tasks">
             {tasks.map((task) => (
@@ -244,7 +320,9 @@ export default function App() {
                   onClick={() => toggleComplete(task)}
                   aria-pressed={task.status === "done"}
                   aria-label={
-                    task.status === "done" ? `${task.title} — done` : `Mark ${task.title} done`
+                    task.status === "done"
+                      ? t.task.doneAria(task.title)
+                      : t.task.markDoneAria(task.title)
                   }
                 />
                 <div className="task__body">
@@ -252,8 +330,13 @@ export default function App() {
                     {task.title}
                   </div>
                   <div className="task__meta">
-                    {task.estimated_minutes != null && <span>{task.estimated_minutes} min</span>}
-                    <ImportanceDots level={task.importance} />
+                    {task.estimated_minutes != null && (
+                      <span>{t.time.minutes(numberFormat.format(task.estimated_minutes))}</span>
+                    )}
+                    <ImportanceDots
+                      label={t.task.importanceAria(numberFormat.format(task.importance))}
+                      level={task.importance}
+                    />
                   </div>
                 </div>
               </li>
@@ -268,22 +351,22 @@ export default function App() {
               className="capture__input"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Add something to today…"
-              aria-label="Add a task to today"
+              placeholder={t.task.addPlaceholder}
+              aria-label={t.task.addAria}
             />
           </div>
-          <p className="capture__hint">Press Enter to add</p>
+          <p className="capture__hint">{t.task.hint}</p>
         </form>
 
         <section className="section">
-          <p className="eyebrow">Tonight</p>
-          <h2 className="section-heading">What happened today?</h2>
+          <p className="eyebrow">{t.journal.eyebrow}</p>
+          <h2 className="section-heading">{t.journal.heading}</h2>
           <form onSubmit={handleJournalSubmit}>
             <textarea
               className="journal-textarea"
               value={journalDraft}
               onChange={(event) => setJournalDraft(event.target.value)}
-              placeholder="Write freely — people, moods, what went well, what didn't…"
+              placeholder={t.journal.placeholder}
               rows={4}
             />
             <button
@@ -291,7 +374,7 @@ export default function App() {
               className="btn"
               disabled={journalStatus === "sending" || !journalDraft.trim()}
             >
-              {journalStatus === "sending" ? "Reading…" : "Save reflection"}
+              {journalStatus === "sending" ? t.journal.saving : t.journal.save}
             </button>
           </form>
 
@@ -308,20 +391,20 @@ export default function App() {
         </section>
 
         <section className="section">
-          <p className="eyebrow">Tomorrow</p>
-          <h2 className="section-heading">Let the Planner build your day</h2>
+          <p className="eyebrow">{t.planner.eyebrow}</p>
+          <h2 className="section-heading">{t.planner.heading}</h2>
           <button
             type="button"
             className="btn"
             onClick={handlePlanTomorrow}
             disabled={planStatus === "loading"}
           >
-            {planStatus === "loading" ? "Thinking…" : "Plan tomorrow"}
+            {planStatus === "loading" ? t.planner.loading : t.planner.action}
           </button>
 
           {planStatus === "unavailable" && (
             <p className="plan-message">
-              {planMessage ?? "Planning is unavailable right now."}
+              {planMessage ?? t.planner.unavailable}
             </p>
           )}
 
@@ -343,25 +426,25 @@ export default function App() {
         </section>
 
         <section className="section">
-          <p className="eyebrow">Behavior</p>
-          <h2 className="section-heading">Routines</h2>
+          <p className="eyebrow">{t.routines.eyebrow}</p>
+          <h2 className="section-heading">{t.routines.heading}</h2>
           <form className="inline-form" onSubmit={handleRoutineSubmit}>
             <input
               className="inline-input"
               value={routineName}
               onChange={(event) => setRoutineName(event.target.value)}
-              placeholder="Routine"
-              aria-label="Routine name"
+              placeholder={t.routines.namePlaceholder}
+              aria-label={t.routines.nameAria}
             />
             <input
               className="inline-input inline-input--compact"
               value={routineCategory}
               onChange={(event) => setRoutineCategory(event.target.value)}
-              placeholder="Category"
-              aria-label="Routine category"
+              placeholder={t.routines.categoryPlaceholder}
+              aria-label={t.routines.categoryAria}
             />
             <button type="submit" className="btn btn--inline" disabled={!routineName.trim()}>
-              Add
+              {t.routines.add}
             </button>
           </form>
 
@@ -373,12 +456,12 @@ export default function App() {
                   <div className="routine__body">
                     <div className="routine__name">{routine.name}</div>
                     <div className="routine__meta">
-                      {routine.category || "daily"} · {occurrence?.status ?? "not prepared"}
+                      {routine.category || t.routines.daily} · {routineStatusLabel(occurrence)}
                     </div>
                   </div>
                   <div className="routine__actions">
                     <button type="button" className="mini-btn" onClick={() => prepareRoutine(routine)}>
-                      Today
+                      {t.routines.today}
                     </button>
                     <button
                       type="button"
@@ -386,7 +469,7 @@ export default function App() {
                       onClick={() => fulfillRoutine(routine)}
                       disabled={occurrence?.status === "fulfilled"}
                     >
-                      Done
+                      {t.routines.done}
                     </button>
                     <button
                       type="button"
@@ -394,7 +477,7 @@ export default function App() {
                       onClick={() => skipRoutine(routine)}
                       disabled={occurrence?.status === "skipped"}
                     >
-                      Skip
+                      {t.routines.skip}
                     </button>
                   </div>
                 </li>
@@ -404,25 +487,25 @@ export default function App() {
         </section>
 
         <section className="section">
-          <p className="eyebrow">Relationships</p>
-          <h2 className="section-heading">People and knowledge</h2>
+          <p className="eyebrow">{t.relationships.eyebrow}</p>
+          <h2 className="section-heading">{t.relationships.heading}</h2>
           <form className="inline-form" onSubmit={handlePersonSubmit}>
             <input
               className="inline-input"
               value={personName}
               onChange={(event) => setPersonName(event.target.value)}
-              placeholder="Person"
-              aria-label="Person name"
+              placeholder={t.relationships.personPlaceholder}
+              aria-label={t.relationships.personAria}
             />
             <input
               className="inline-input inline-input--compact"
               value={relationshipLabel}
               onChange={(event) => setRelationshipLabel(event.target.value)}
-              placeholder="Relationship"
-              aria-label="Relationship label"
+              placeholder={t.relationships.relationshipPlaceholder}
+              aria-label={t.relationships.relationshipAria}
             />
             <button type="submit" className="btn btn--inline" disabled={!personName.trim()}>
-              Add
+              {t.relationships.add}
             </button>
           </form>
 
@@ -442,7 +525,7 @@ export default function App() {
               {edges.map((edge) => (
                 <li className="edge" key={edge.id}>
                   <span>{edge.subject_label}</span>
-                  <strong>{edge.predicate}</strong>
+                  <strong>{predicateLabel(edge.predicate)}</strong>
                   <span>{edge.object_label}</span>
                 </li>
               ))}

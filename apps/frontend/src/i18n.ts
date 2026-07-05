@@ -1,0 +1,181 @@
+export type Language = "en" | "fa";
+export type Theme = "dark" | "light";
+
+export const LANGUAGES: Language[] = ["en", "fa"];
+export const THEMES: Theme[] = ["dark", "light"];
+
+export const localeFor = (language: Language) => (language === "fa" ? "fa-IR" : "en-US");
+export const directionFor = (language: Language) => (language === "fa" ? "rtl" : "ltr");
+
+export const copy = {
+  en: {
+    controls: {
+      language: "Language",
+      theme: "Theme",
+      english: "EN",
+      persian: "FA",
+      dark: "Dark",
+      light: "Light",
+    },
+    time: {
+      today: "Today",
+      dawn: "Dawn",
+      now: "Now",
+      dusk: "Dusk",
+      minutes: (value: string) => `${value} min`,
+    },
+    task: {
+      empty: "Nothing logged yet — begin your day below.",
+      addPlaceholder: "Add something to today…",
+      addAria: "Add a task to today",
+      hint: "Press Enter to add",
+      doneAria: (title: string) => `${title} — done`,
+      markDoneAria: (title: string) => `Mark ${title} done`,
+      importanceAria: (level: string) => `Importance ${level} of 5`,
+    },
+    journal: {
+      eyebrow: "Tonight",
+      heading: "What happened today?",
+      placeholder: "Write freely — people, moods, what went well, what didn't…",
+      saving: "Reading…",
+      save: "Save reflection",
+    },
+    planner: {
+      eyebrow: "Tomorrow",
+      heading: "Let the Planner build your day",
+      loading: "Thinking…",
+      action: "Plan tomorrow",
+      unavailable: "Planning is unavailable right now.",
+    },
+    routines: {
+      eyebrow: "Behavior",
+      heading: "Routines",
+      namePlaceholder: "Routine",
+      nameAria: "Routine name",
+      categoryPlaceholder: "Category",
+      categoryAria: "Routine category",
+      add: "Add",
+      today: "Today",
+      done: "Done",
+      skip: "Skip",
+      daily: "daily",
+      notPrepared: "not prepared",
+      reasonPrompt: "Reason",
+      status: {
+        pending: "pending",
+        fulfilled: "fulfilled",
+        skipped: "skipped",
+      },
+    },
+    relationships: {
+      eyebrow: "Relationships",
+      heading: "People and knowledge",
+      personPlaceholder: "Person",
+      personAria: "Person name",
+      relationshipPlaceholder: "Relationship",
+      relationshipAria: "Relationship label",
+      add: "Add",
+      predicate: {
+        involves: "involves",
+      },
+    },
+    errors: {
+      backend: "Could not reach Chronos — is the backend running?",
+      lifeContext: "Could not load routines and relationships.",
+      taskSave: "Couldn't save that task. It's still in the box below — try again.",
+      taskUpdate: "Couldn't update that task — try again in a moment.",
+      journalSave: "Couldn't save that entry — try again.",
+      routineSave: "Couldn't save that routine.",
+      routinePrepare: "Couldn't prepare that routine for today.",
+      routineFulfill: "Couldn't mark that routine fulfilled.",
+      routineSkip: "Couldn't skip that routine.",
+      personSave: "Couldn't save that person.",
+    },
+  },
+  fa: {
+    controls: {
+      language: "زبان",
+      theme: "پوسته",
+      english: "EN",
+      persian: "FA",
+      dark: "تیره",
+      light: "روشن",
+    },
+    time: {
+      today: "امروز",
+      dawn: "سپیده",
+      now: "اکنون",
+      dusk: "غروب",
+      minutes: (value: string) => `${value} دقیقه`,
+    },
+    task: {
+      empty: "هنوز چیزی ثبت نشده؛ روزت را از پایین شروع کن.",
+      addPlaceholder: "چیزی به امروز اضافه کن…",
+      addAria: "افزودن کار به امروز",
+      hint: "برای افزودن Enter بزن",
+      doneAria: (title: string) => `${title} — انجام شده`,
+      markDoneAria: (title: string) => `علامت‌زدن ${title} به عنوان انجام‌شده`,
+      importanceAria: (level: string) => `اهمیت ${level} از ۵`,
+    },
+    journal: {
+      eyebrow: "امشب",
+      heading: "امروز چه گذشت؟",
+      placeholder: "آزاد بنویس؛ آدم‌ها، حال‌وهوا، چیزهایی که خوب پیش رفت یا نرفت…",
+      saving: "در حال خواندن…",
+      save: "ذخیره بازتاب",
+    },
+    planner: {
+      eyebrow: "فردا",
+      heading: "بگذار Planner روزت را بچیند",
+      loading: "در حال فکر کردن…",
+      action: "برنامه فردا",
+      unavailable: "برنامه‌ریزی فعلاً در دسترس نیست.",
+    },
+    routines: {
+      eyebrow: "رفتار",
+      heading: "روتین‌ها",
+      namePlaceholder: "روتین",
+      nameAria: "نام روتین",
+      categoryPlaceholder: "دسته",
+      categoryAria: "دسته روتین",
+      add: "افزودن",
+      today: "امروز",
+      done: "انجام شد",
+      skip: "رد شد",
+      daily: "روزانه",
+      notPrepared: "آماده نشده",
+      reasonPrompt: "دلیل",
+      status: {
+        pending: "در انتظار",
+        fulfilled: "انجام شده",
+        skipped: "رد شده",
+      },
+    },
+    relationships: {
+      eyebrow: "رابطه‌ها",
+      heading: "آدم‌ها و دانش",
+      personPlaceholder: "شخص",
+      personAria: "نام شخص",
+      relationshipPlaceholder: "نسبت",
+      relationshipAria: "برچسب رابطه",
+      add: "افزودن",
+      predicate: {
+        involves: "مرتبط با",
+      },
+    },
+    errors: {
+      backend: "ارتباط با Chronos برقرار نشد؛ بک‌اند روشن است؟",
+      lifeContext: "روتین‌ها و رابطه‌ها بارگذاری نشدند.",
+      taskSave: "این کار ذخیره نشد. متنش هنوز در کادر است؛ دوباره تلاش کن.",
+      taskUpdate: "به‌روزرسانی کار انجام نشد؛ کمی بعد دوباره تلاش کن.",
+      journalSave: "این نوشته ذخیره نشد؛ دوباره تلاش کن.",
+      routineSave: "این روتین ذخیره نشد.",
+      routinePrepare: "این روتین برای امروز آماده نشد.",
+      routineFulfill: "ثبت انجام روتین موفق نبود.",
+      routineSkip: "رد کردن روتین موفق نبود.",
+      personSave: "این شخص ذخیره نشد.",
+    },
+  },
+} as const;
+
+export type Copy = (typeof copy)[Language];

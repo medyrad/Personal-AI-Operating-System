@@ -4,7 +4,8 @@
    Palette avoids the default cream/serif/terracotta and neon-on-black looks on purpose —
    dusk-indigo ground with amber (daylight) and teal (completed) accents instead. */
 
-:root {
+:root,
+:root[data-theme="dark"] {
   --bg: #14161f;
   --panel: #1b1e2a;
   --line: #2a2e3d;
@@ -24,6 +25,26 @@
   --radius: 10px;
 }
 
+:root[data-theme="light"] {
+  --bg: #f6f4ef;
+  --panel: #ffffff;
+  --line: #ded8cb;
+  --ink: #20222b;
+  --ink-muted: #686f7f;
+  --ink-faint: #9aa0ad;
+
+  --amber: #b86f16;
+  --amber-soft: rgba(184, 111, 22, 0.16);
+  --teal: #168875;
+  --violet: #6257c8;
+}
+
+:root[lang="fa-IR"] {
+  --font-display: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -34,6 +55,7 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--ink);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 body {
@@ -42,7 +64,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font-family: inherit;
 }
 
