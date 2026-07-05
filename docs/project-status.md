@@ -15,6 +15,8 @@ Last reviewed locally: 2026-07-05.
 - Knowledge graph summaries resolve event/person labels for UI consumption.
 - The frontend currently supports the Today task flow, Tonight journal capture, Tomorrow
   planner trigger, routines, people, and knowledge summaries.
+- The frontend supports English/Persian UI copy, LTR/RTL layout direction, and dark/light
+  themes with local preference persistence.
 - Local verification passes with `make check`.
 
 ## Current Local Startup
