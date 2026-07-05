@@ -14,7 +14,8 @@ from ninja import NinjaAPI, Schema
 
 from chronos_backend.accounts.models import User
 
-from .models import Event, EventType, TaskDetail, TaskStatus
+from .extraction import get_extractor
+from .models import Event, EventType, JournalEntry, MoodDetail, TaskDetail, TaskStatus
 
 api = NinjaAPI(title="Chronos API", version="0.1.0")
 
@@ -90,3 +91,68 @@ def complete_task(request: HttpRequest, event_id: str) -> TaskOutSchema:
     detail.status = TaskStatus.DONE
     detail.save(update_fields=["status"])
     return _serialize(event, detail)
+
+
+class JournalCreateSchema(Schema):
+    raw_text: str
+
+
+class ExtractedEventOutSchema(Schema):
+    id: str
+    type: str
+    title: str
+    mood_valence: int | None = None
+
+
+class JournalOutSchema(Schema):
+    id: str
+    entry_date: str
+    raw_text: str
+    extracted_events: list[ExtractedEventOutSchema]
+
+
+@api.post("/journal", response=JournalOutSchema)
+def create_journal_entry(request: HttpRequest, payload: JournalCreateSchema) -> JournalOutSchema:
+    user = _dev_user()
+    now = dj_timezone.now()
+
+    entry = JournalEntry.objects.create(
+        user=user,
+        entry_date=dj_timezone.localdate(),
+        raw_text=payload.raw_text,
+    )
+
+    extracted = get_extractor().extract(payload.raw_text)
+    created_events: list[Event] = []
+
+    for item in extracted:
+        event = Event.objects.create(
+            user=user,
+            type=item.type,
+            occurred_at=now,
+            title=item.title,
+            mood_valence=item.mood_valence,
+            source_journal_entry=entry,
+        )
+        if item.type == EventType.MOOD:
+            MoodDetail.objects.create(
+                event=event,
+                label=item.mood_label or "",
+                intensity=abs(item.mood_valence or 0) or 1,
+            )
+        created_events.append(event)
+
+    entry.processed_at = dj_timezone.now()
+    entry.save(update_fields=["processed_at"])
+
+    return JournalOutSchema(
+        id=str(entry.id),
+        entry_date=entry.entry_date.isoformat(),
+        raw_text=entry.raw_text,
+        extracted_events=[
+            ExtractedEventOutSchema(
+                id=str(e.id), type=e.type, title=e.title, mood_valence=e.mood_valence
+            )
+            for e in created_events
+        ],
+    )

@@ -43,3 +43,27 @@ def test_complete_task_transitions_status() -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "done"
+
+
+def test_journal_entry_extracts_mood_event() -> None:
+    client = Client()
+    response = client.post(
+        "/api/journal",
+        data={"raw_text": "Had a stressed and tired day, meetings ran long."},
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+    body = response.json()
+    types = [e["type"] for e in body["extracted_events"]]
+    assert "mood" in types
+
+
+def test_journal_entry_with_no_signal_creates_no_events() -> None:
+    client = Client()
+    response = client.post(
+        "/api/journal",
+        data={"raw_text": "Reviewed the quarterly budget spreadsheet."},
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+    assert response.json()["extracted_events"] == []

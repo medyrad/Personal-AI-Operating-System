@@ -1,8 +1,8 @@
-"""Core Event model and its first satellite detail table.
+"""Core Event model and its satellite detail tables, plus JournalEntry.
 
-Only `task` events are implemented in this first vertical slice — Conversation, Health,
-Mood, etc. detail tables follow the exact same pattern (see docs/data-model.md) and are
-added when the feature that needs them is built, not before.
+Task, Conversation, and Mood detail tables are implemented; Health, Learning, Expense,
+and Trip follow the exact same pattern (see docs/data-model.md) and are added when the
+feature that needs them is built, not before.
 """
 
 import uuid
@@ -41,6 +41,13 @@ class Event(models.Model):
     mood_valence = models.SmallIntegerField(
         null=True, blank=True, help_text="-2..+2 quick sentiment, if applicable."
     )
+    source_journal_entry = models.ForeignKey(
+        "JournalEntry",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="extracted_events",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -73,3 +80,63 @@ class TaskDetail(models.Model):
 
     def __str__(self) -> str:
         return f"TaskDetail(status={self.status}) for {self.event_id}"
+
+
+class ConversationOutcome(models.TextChoices):
+    AGREEMENT = "agreement", "Agreement"
+    DISAGREEMENT = "disagreement", "Disagreement"
+    UNRESOLVED = "unresolved", "Unresolved"
+
+
+class ConversationDetail(models.Model):
+    """1:1 satellite table for `Event.type == EventType.CONVERSATION`."""
+
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, primary_key=True)
+    emotion = models.CharField(max_length=64, blank=True, default="")
+    topic = models.CharField(max_length=255, blank=True, default="")
+    outcome = models.CharField(
+        max_length=16, choices=ConversationOutcome.choices, blank=True, default=""
+    )
+    relationship_delta = models.SmallIntegerField(
+        null=True, blank=True, help_text="-2..+2 change in relationship quality."
+    )
+
+    def __str__(self) -> str:
+        return f"ConversationDetail(topic={self.topic!r}) for {self.event_id}"
+
+
+class MoodDetail(models.Model):
+    """1:1 satellite table for `Event.type == EventType.MOOD`."""
+
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, primary_key=True)
+    label = models.CharField(max_length=64)
+    intensity = models.SmallIntegerField(help_text="1..5")
+    trigger = models.CharField(max_length=255, blank=True, default="")
+
+    def __str__(self) -> str:
+        return f"MoodDetail(label={self.label!r}) for {self.event_id}"
+
+
+class JournalEntry(models.Model):
+    """The raw daily narrative — never mutated after extraction; see docs/data-model.md."""
+
+    class Source(models.TextChoices):
+        VOICE = "voice", "Voice"
+        TEXT = "text", "Text"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="journal_entries"
+    )
+    entry_date = models.DateField()
+    raw_text = models.TextField()
+    source = models.CharField(max_length=8, choices=Source.choices, default=Source.TEXT)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-entry_date"]
+        verbose_name_plural = "journal entries"
+
+    def __str__(self) -> str:
+        return f"JournalEntry({self.entry_date}) for {self.user_id}"
