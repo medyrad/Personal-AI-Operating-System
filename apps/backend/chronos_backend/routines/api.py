@@ -75,6 +75,18 @@ def list_routines(request: HttpRequest) -> list[RoutineOutSchema]:
     return [_serialize_routine(r) for r in routines]
 
 
+@router.get("/occurrences/today", response=list[OccurrenceOutSchema])
+def list_today_occurrences(request: HttpRequest) -> list[OccurrenceOutSchema]:
+    today = dj_timezone.localdate()
+    routines = Routine.objects.filter(user=get_dev_user(), active=True)
+    occurrences = [
+        occurrence
+        for routine in routines
+        if (occurrence := ensure_occurrence_for(routine, today)) is not None
+    ]
+    return [_serialize_occurrence(occurrence) for occurrence in occurrences]
+
+
 @router.post("/{routine_id}/today", response=OccurrenceOutSchema | None)
 def ensure_today(request: HttpRequest, routine_id: str):  # type: ignore[no-untyped-def]
     routine = get_object_or_404(Routine, id=routine_id, user=get_dev_user())
