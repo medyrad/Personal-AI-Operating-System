@@ -75,6 +75,8 @@ export const copy = {
       relationshipPlaceholder: "Relationship",
       relationshipAria: "Relationship label",
       add: "Add",
+      editLabel: "Label",
+      labelPrompt: "Relationship label",
       predicate: {
         involves: "involves",
       },
@@ -159,6 +161,8 @@ export const copy = {
       relationshipPlaceholder: "نسبت",
       relationshipAria: "برچسب رابطه",
       add: "افزودن",
+      editLabel: "برچسب",
+      labelPrompt: "برچسب رابطه",
       predicate: {
         involves: "مرتبط با",
       },

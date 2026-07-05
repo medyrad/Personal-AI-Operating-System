@@ -98,9 +98,13 @@ export default function App() {
         api.listPeople(),
         api.listKnowledgeSummary(),
       ]);
+      const todayOccurrences = await api.listTodayOccurrences();
       setRoutines(routineList);
       setPeople(peopleList);
       setEdges(edgeList);
+      setOccurrences(
+        Object.fromEntries(todayOccurrences.map((occurrence) => [occurrence.routine_id, occurrence])),
+      );
     } catch {
       setError(t.errors.lifeContext);
     }
@@ -117,6 +121,16 @@ export default function App() {
   }, [refreshLifeContext, t.errors.backend]);
 
   const progress = useMemo(() => dayProgressPercent(now), [now]);
+  const progressPositionStyle =
+    direction === "rtl" ? ({ right: `${progress}%` } as const) : ({ left: `${progress}%` } as const);
+  const progressFillStyle =
+    direction === "rtl"
+      ? ({ width: `${progress}%`, right: 0 } as const)
+      : ({ width: `${progress}%`, left: 0 } as const);
+  const dayBoundaryLabels =
+    direction === "rtl"
+      ? [t.time.dusk, `${t.time.now} · ${clock}`, t.time.dawn]
+      : [t.time.dawn, `${t.time.now} · ${clock}`, t.time.dusk];
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -185,6 +199,8 @@ export default function App() {
         schedule_rule: "FREQ=DAILY",
       });
       setRoutines((prev) => [...prev, created]);
+      const occurrence = await api.ensureRoutineToday(created.id);
+      setOccurrences((prev) => ({ ...prev, [created.id]: occurrence }));
     } catch {
       setError(t.errors.routineSave);
       setRoutineName(name);
@@ -249,6 +265,20 @@ export default function App() {
     }
   }
 
+  async function editPersonLabel(person: Person) {
+    const nextLabel = window.prompt(t.relationships.labelPrompt, person.relationship_label);
+    if (nextLabel == null) return;
+    try {
+      const updated = await api.updatePerson(person.id, {
+        relationship_label: nextLabel.trim(),
+        aliases: person.aliases,
+      });
+      setPeople((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    } catch {
+      setError(t.errors.personSave);
+    }
+  }
+
   const routineStatusLabel = (occurrence: RoutineOccurrence | null | undefined) =>
     occurrence ? t.routines.status[occurrence.status] : t.routines.notPrepared;
 
@@ -294,15 +324,13 @@ export default function App() {
 
         <div className="day-progress">
           <div className="day-progress__track">
-            <div className="day-progress__fill" style={{ width: `${progress}%` }} />
-            <div className="day-progress__marker" style={{ left: `${progress}%` }} />
+            <div className="day-progress__fill" style={progressFillStyle} />
+            <div className="day-progress__marker" style={progressPositionStyle} />
           </div>
           <div className="day-progress__label">
-            <span>{t.time.dawn}</span>
-            <strong>
-              {t.time.now} · {clock}
-            </strong>
-            <span>{t.time.dusk}</span>
+            <span>{dayBoundaryLabels[0]}</span>
+            <strong>{dayBoundaryLabels[1]}</strong>
+            <span>{dayBoundaryLabels[2]}</span>
           </div>
         </div>
 
@@ -515,6 +543,13 @@ export default function App() {
                 <li className="person" key={person.id}>
                   <span>{person.display_name}</span>
                   {person.relationship_label && <small>{person.relationship_label}</small>}
+                  <button
+                    type="button"
+                    className="person__edit"
+                    onClick={() => editPersonLabel(person)}
+                  >
+                    {t.relationships.editLabel}
+                  </button>
                 </li>
               ))}
             </ul>

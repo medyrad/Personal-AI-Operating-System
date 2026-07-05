@@ -115,6 +115,7 @@ export const api = {
     request<JournalResult>("/journal", { method: "POST", body: JSON.stringify({ raw_text }) }),
   planTomorrow: () => request<DayPlan>("/ai/planner/tomorrow", { method: "POST" }),
   listRoutines: () => request<Routine[]>("/routines/"),
+  listTodayOccurrences: () => request<RoutineOccurrence[]>("/routines/occurrences/today"),
   createRoutine: (input: CreateRoutineInput) =>
     request<Routine>("/routines/", { method: "POST", body: JSON.stringify(input) }),
   ensureRoutineToday: (id: string) =>
