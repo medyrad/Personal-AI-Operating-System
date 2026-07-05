@@ -9,15 +9,35 @@ touches one file, not every agent.
 import os
 from typing import Literal, cast
 
+from dotenv import dotenv_values, load_dotenv
 from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.openai import OpenAIChatModel
+
+load_dotenv()
 
 ProviderName = Literal["auto", "anthropic", "openai"]
 
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
 DEFAULT_OPENAI_MODEL = "gpt-4.1"
 PROVIDER_ENV = "AI_PROVIDER"
+LOCAL_ENV_KEYS = (
+    PROVIDER_ENV,
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_MODEL",
+    "OPENAI_MODEL",
+)
+
+
+def _fill_empty_env_from_dotenv() -> None:
+    if os.environ.get("CHRONOS_DISABLE_DOTENV_FILL") == "1":
+        return
+    local_values = dotenv_values()
+    for key in LOCAL_ENV_KEYS:
+        local_value = local_values.get(key)
+        if local_value and not os.environ.get(key):
+            os.environ[key] = local_value
 
 
 class GatewayNotConfigured(RuntimeError):
@@ -53,6 +73,7 @@ def _openai_model(model_name: str | None = None) -> OpenAIChatModel:
 
 
 def get_model(model_name: str | None = None) -> Model:
+    _fill_empty_env_from_dotenv()
     provider = _provider_from_env()
     if provider == "anthropic":
         return _anthropic_model(model_name)

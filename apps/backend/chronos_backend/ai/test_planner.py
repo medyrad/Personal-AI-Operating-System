@@ -21,6 +21,7 @@ def test_plan_tomorrow_returns_typed_day_plan() -> None:
 
 
 def test_gateway_raises_clear_error_without_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CHRONOS_DISABLE_DOTENV_FILL", "1")
     monkeypatch.delenv("AI_PROVIDER", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
