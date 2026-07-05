@@ -17,6 +17,8 @@ Last reviewed locally: 2026-07-05.
   planner trigger, routines, people, and knowledge summaries.
 - The frontend supports English/Persian UI copy, LTR/RTL layout direction, and dark/light
   themes with local preference persistence.
+- The AI gateway supports `AI_PROVIDER=auto|anthropic|openai`, model overrides, Anthropic
+  keys, and OpenAI keys without hard-coding provider logic inside agents.
 - Local verification passes with `make check`.
 
 ## Current Local Startup
@@ -28,9 +30,8 @@ Last reviewed locally: 2026-07-05.
 
 ## Known Gaps
 
-- Planner is tested with `TestModel`, but not yet validated against a real provider in this
-  checkout.
-- Gateway currently supports Anthropic only.
+- Planner is tested with `TestModel`, but not yet validated against a real provider because
+  no fresh safe API key has been configured.
 - Routine recurrence remains intentionally minimal: daily and weekly-by-day only.
 - Knowledge graph UI is still a compact relationship feed, not an exploratory graph view.
 - Health, expense, learning, insight, reflection, and relationship-agent slices are not
@@ -40,11 +41,10 @@ Last reviewed locally: 2026-07-05.
 
 ## Suggested TODO
 
-1. Extend the AI gateway only after choosing the provider strategy and storing keys locally.
-2. Validate the Planner Agent with a real model using a low-limit API key.
-3. Add the next product slice: reflection questions or relationship nudges are the most
+1. Validate the Planner Agent with a real model using a fresh, low-limit API key.
+2. Add the next product slice: reflection questions or relationship nudges are the most
    natural follow-ups because current journal and people data can feed them.
-4. Replace the SQLite fallback with committed local infrastructure once Docker/PostgreSQL
+3. Replace the SQLite fallback with committed local infrastructure once Docker/PostgreSQL
    setup is healthy.
-5. Expand routines beyond the compact panel when weekly/monthly planning becomes a real
+4. Expand routines beyond the compact panel when weekly/monthly planning becomes a real
    user workflow.
