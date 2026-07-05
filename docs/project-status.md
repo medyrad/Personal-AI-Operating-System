@@ -21,6 +21,8 @@ Last reviewed locally: 2026-07-05.
   themes with local preference persistence.
 - The AI gateway supports `AI_PROVIDER=auto|anthropic|openai`, model overrides, Anthropic
   keys, and OpenAI keys without hard-coding provider logic inside agents.
+- The Planner Agent has been smoke-tested against a real OpenAI-backed provider through
+  both the agent call path and `/api/ai/planner/tomorrow`.
 - Local verification passes with `make check`.
 
 ## Current Local Startup
@@ -32,8 +34,8 @@ Last reviewed locally: 2026-07-05.
 
 ## Known Gaps
 
-- Planner is tested with `TestModel`, but not yet validated against a real provider because
-  no fresh safe API key has been configured.
+- Planner real-provider validation is currently smoke-level only; prompt quality,
+  regression evals, and cost/latency guardrails are not implemented yet.
 - Routine recurrence remains intentionally minimal: daily and weekly-by-day only.
 - Knowledge graph UI is still a compact relationship feed, not a spatial exploratory
   graph view.
@@ -44,7 +46,7 @@ Last reviewed locally: 2026-07-05.
 
 ## Suggested TODO
 
-1. Validate the Planner Agent with a real model using a fresh, low-limit API key.
+1. Add prompt-quality regression evals and cost/latency guardrails for Planner.
 2. Add the next product slice: reflection questions or relationship nudges are the most
    natural follow-ups because current journal and people data can feed them.
 3. Replace the SQLite fallback with committed local infrastructure once Docker/PostgreSQL
