@@ -64,15 +64,58 @@ chronos/
 
 ## Getting Started
 
-Prerequisites: `uv`, `pnpm`, `Docker`.
+Prerequisites:
+
+- `uv`
+- Node 22.21.1 (`nvm use` reads `.nvmrc`)
+- `pnpm` through Corepack
+- Rust 1.83+ when Python packages need to build native wheels
+
+Create a local environment file. It is ignored by Git:
 
 ```bash
-make bootstrap   # installs Python + Node workspaces, sets up pre-commit
-make up           # starts local infrastructure (Postgres, Redis, MinIO, Mailpit)
-make dev           # runs backend + frontend in watch mode
+cp apps/backend/.env.example .env
 ```
 
-Full setup instructions land in PR-0005/PR-0006 (local infrastructure and dev containers).
+For the current local vertical slice, either keep the PostgreSQL URL from the example or
+use the lightweight SQLite fallback:
+
+```bash
+DATABASE_URL=sqlite:///chronos-dev.sqlite3
+```
+
+Bootstrap and verify the workspace:
+
+```bash
+nvm use
+make bootstrap
+make up
+make check
+```
+
+Run the app:
+
+```bash
+make dev
+```
+
+The backend runs at `http://127.0.0.1:8000/`, and the frontend runs at
+`http://127.0.0.1:5173/`.
+
+You can also run the servers separately:
+
+```bash
+make dev-backend
+make dev-frontend
+```
+
+Notes from the first local startup on this machine:
+
+- Docker daemon was not running, so local Docker infrastructure was not used.
+- The installed Homebrew PostgreSQL 18 had missing shared files, so the app was started
+  with the SQLite fallback above.
+- Python dependency installation required updating Rust from 1.78 to a newer stable
+  toolchain because `cryptography` builds require Rust 1.83+.
 
 ## Contributing
 
