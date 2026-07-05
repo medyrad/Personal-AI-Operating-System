@@ -10,6 +10,8 @@ only one agent so far — orchestration is added when a second agent needs to ru
 after this one.
 """
 
+import re
+
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
@@ -51,6 +53,44 @@ class DayPlan(BaseModel):
     blocks: list[TimeBlock]
 
 
+class PlannerValidationError(RuntimeError):
+    """Raised when a model returns a schedule that violates hard calendar constraints."""
+
+
+_BLOCK_TIME_PATTERN = re.compile(r"^(?P<hour>[01]\d|2[0-3]):(?P<minute>[0-5]\d)$")
+_BOUNDARY_TIME_PATTERN = re.compile(r"^(?P<hour>[01]\d|2[0-3]):(?P<minute>[0-5]\d)(?::[0-5]\d)?$")
+
+
+def _parse_minutes(value: str, *, boundary: bool = False) -> int:
+    pattern = _BOUNDARY_TIME_PATTERN if boundary else _BLOCK_TIME_PATTERN
+    match = pattern.match(value)
+    if not match:
+        raise PlannerValidationError(f"{value!r} is not a valid HH:MM time.")
+    return int(match.group("hour")) * 60 + int(match.group("minute"))
+
+
+def validate_day_plan(plan: DayPlan, wake_time: str, sleep_time: str) -> DayPlan:
+    wake = _parse_minutes(wake_time, boundary=True)
+    sleep = _parse_minutes(sleep_time, boundary=True)
+    if wake >= sleep:
+        raise PlannerValidationError("Planner wake_time must be earlier than sleep_time.")
+
+    previous_end = wake
+    for index, block in enumerate(plan.blocks, start=1):
+        start = _parse_minutes(block.start)
+        end = _parse_minutes(block.end)
+        if start >= end:
+            raise PlannerValidationError(f"Block {index} must start before it ends.")
+        if start < wake or end > sleep:
+            raise PlannerValidationError(f"Block {index} must be between wake_time and sleep_time.")
+        if start < previous_end:
+            raise PlannerValidationError(
+                f"Block {index} overlaps or is earlier than a previous block."
+            )
+        previous_end = end
+    return plan
+
+
 def build_agent(model: Model | None = None) -> Agent[None, DayPlan]:
     """Builds the agent. Pass an explicit `model` (e.g. TestModel) in tests."""
     return Agent(model or get_model(), output_type=DayPlan, system_prompt=SYSTEM_PROMPT)
@@ -72,4 +112,4 @@ def plan_tomorrow(
 ) -> DayPlan:
     agent = build_agent(model)
     result = agent.run_sync(_format_prompt(wake_time, sleep_time, tasks))
-    return result.output
+    return validate_day_plan(result.output, wake_time=wake_time, sleep_time=sleep_time)

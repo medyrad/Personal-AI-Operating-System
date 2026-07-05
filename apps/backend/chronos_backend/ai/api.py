@@ -8,7 +8,7 @@ from chronos_backend.accounts.models import User
 from chronos_backend.events.models import Event, EventType, TaskStatus
 
 from .gateway import GatewayNotConfigured
-from .planner import PendingTask, plan_tomorrow
+from .planner import PendingTask, PlannerValidationError, plan_tomorrow
 
 router = Router()
 
@@ -44,7 +44,7 @@ def _pending_tasks_for(user: User) -> list[PendingTask]:
 
 @router.post(
     "/planner/tomorrow",
-    response={200: DayPlanOutSchema, 503: GatewayErrorSchema},
+    response={200: DayPlanOutSchema, 502: GatewayErrorSchema, 503: GatewayErrorSchema},
 )
 def plan_tomorrow_view(request: HttpRequest):  # type: ignore[no-untyped-def]
     user = get_dev_user()
@@ -54,6 +54,8 @@ def plan_tomorrow_view(request: HttpRequest):  # type: ignore[no-untyped-def]
 
     try:
         plan = plan_tomorrow(wake_time=wake, sleep_time=sleep, tasks=tasks)
+    except PlannerValidationError as exc:
+        return 502, GatewayErrorSchema(detail=str(exc))
     except GatewayNotConfigured as exc:
         return 503, GatewayErrorSchema(detail=str(exc))
 
