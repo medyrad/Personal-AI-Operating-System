@@ -16,6 +16,31 @@ export interface CreateTaskInput {
   importance?: number;
 }
 
+export interface ExtractedEvent {
+  id: string;
+  type: string;
+  title: string;
+  mood_valence: number | null;
+}
+
+export interface JournalResult {
+  id: string;
+  entry_date: string;
+  raw_text: string;
+  extracted_events: ExtractedEvent[];
+}
+
+export interface TimeBlock {
+  start: string;
+  end: string;
+  activity: string;
+  reason: string;
+}
+
+export interface DayPlan {
+  blocks: TimeBlock[];
+}
+
 const BASE = "/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -24,7 +49,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!response.ok) {
-    throw new Error(`Chronos API error ${response.status} on ${path}`);
+    const body = await response.json().catch(() => null);
+    const message = body?.detail ?? `Chronos API error ${response.status} on ${path}`;
+    throw new Error(message);
   }
   return (await response.json()) as T;
 }
@@ -35,4 +62,7 @@ export const api = {
     request<Task>("/events/tasks", { method: "POST", body: JSON.stringify(input) }),
   completeTask: (id: string) =>
     request<Task>(`/events/tasks/${id}/complete`, { method: "POST" }),
+  submitJournal: (raw_text: string) =>
+    request<JournalResult>("/journal", { method: "POST", body: JSON.stringify({ raw_text }) }),
+  planTomorrow: () => request<DayPlan>("/ai/planner/tomorrow", { method: "POST" }),
 };

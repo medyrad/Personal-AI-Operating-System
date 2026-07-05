@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
-import { api, type Task } from "./api";
+import { api, type DayPlan, type ExtractedEvent, type Task } from "./api";
 
 const DAY_NAME = new Intl.DateTimeFormat(undefined, { weekday: "long" });
 const DAY_DATE = new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric" });
@@ -26,6 +26,14 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [now] = useState(() => new Date());
+
+  const [journalDraft, setJournalDraft] = useState("");
+  const [journalEvents, setJournalEvents] = useState<ExtractedEvent[]>([]);
+  const [journalStatus, setJournalStatus] = useState<"idle" | "sending" | "sent">("idle");
+
+  const [plan, setPlan] = useState<DayPlan | null>(null);
+  const [planStatus, setPlanStatus] = useState<"idle" | "loading" | "unavailable">("idle");
+  const [planMessage, setPlanMessage] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -57,6 +65,35 @@ export default function App() {
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch {
       setError("Couldn't update that task — try again in a moment.");
+    }
+  }
+
+  async function handleJournalSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const text = journalDraft.trim();
+    if (!text) return;
+    setJournalStatus("sending");
+    try {
+      const result = await api.submitJournal(text);
+      setJournalEvents((prev) => [...result.extracted_events, ...prev]);
+      setJournalDraft("");
+      setJournalStatus("sent");
+    } catch {
+      setJournalStatus("idle");
+      setError("Couldn't save that entry — try again.");
+    }
+  }
+
+  async function handlePlanTomorrow() {
+    setPlanStatus("loading");
+    setPlanMessage(null);
+    try {
+      const result = await api.planTomorrow();
+      setPlan(result);
+      setPlanStatus("idle");
+    } catch (err) {
+      setPlanStatus("unavailable");
+      setPlanMessage(err instanceof Error ? err.message : "Planning is unavailable right now.");
     }
   }
 
@@ -124,6 +161,73 @@ export default function App() {
           </div>
           <p className="capture__hint">Press Enter to add</p>
         </form>
+
+        <section className="section">
+          <p className="eyebrow">Tonight</p>
+          <h2 className="section-heading">What happened today?</h2>
+          <form onSubmit={handleJournalSubmit}>
+            <textarea
+              className="journal-textarea"
+              value={journalDraft}
+              onChange={(event) => setJournalDraft(event.target.value)}
+              placeholder="Write freely — people, moods, what went well, what didn't…"
+              rows={4}
+            />
+            <button
+              type="submit"
+              className="btn"
+              disabled={journalStatus === "sending" || !journalDraft.trim()}
+            >
+              {journalStatus === "sending" ? "Reading…" : "Save reflection"}
+            </button>
+          </form>
+
+          {journalEvents.length > 0 && (
+            <ul className="chip-list">
+              {journalEvents.map((ev) => (
+                <li className="chip" key={ev.id}>
+                  <span className={`chip__dot chip__dot--${ev.type}`} />
+                  {ev.title}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="section">
+          <p className="eyebrow">Tomorrow</p>
+          <h2 className="section-heading">Let the Planner build your day</h2>
+          <button
+            type="button"
+            className="btn"
+            onClick={handlePlanTomorrow}
+            disabled={planStatus === "loading"}
+          >
+            {planStatus === "loading" ? "Thinking…" : "Plan tomorrow"}
+          </button>
+
+          {planStatus === "unavailable" && (
+            <p className="plan-message">
+              {planMessage ?? "Planning is unavailable right now."}
+            </p>
+          )}
+
+          {plan && (
+            <ol className="plan-list">
+              {plan.blocks.map((block, i) => (
+                <li className="plan-block" key={i}>
+                  <span className="plan-block__time">
+                    {block.start}–{block.end}
+                  </span>
+                  <div>
+                    <div className="plan-block__activity">{block.activity}</div>
+                    <div className="plan-block__reason">{block.reason}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
       </div>
     </div>
   );
