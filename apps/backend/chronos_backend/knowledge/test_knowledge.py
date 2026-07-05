@@ -29,3 +29,20 @@ def test_same_person_mentioned_twice_resolves_to_one_record() -> None:
 
     assert first.id == second.id
     assert Person.objects.filter(user=user, display_name__iexact="Ali").count() == 1
+
+
+def test_edge_summary_resolves_human_labels() -> None:
+    client = Client()
+    client.post(
+        "/api/journal",
+        data={"raw_text": "Had coffee with Sara and talked through Chronos."},
+        content_type="application/json",
+    )
+
+    response = client.get("/api/knowledge/summary")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["predicate"] == "involves"
+    assert body[0]["object_label"] == "Sara"
+    assert "Sara" in body[0]["subject_label"]
